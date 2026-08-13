@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const navigate = useNavigate();
-  const { login, isLoading, error } = useAuthStore();
+  const { signup, isLoading, error } = useAuthStore();
 
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
+    confirmPassword: '',
   });
   const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,8 +25,14 @@ export default function LoginPage() {
     e.preventDefault();
     setFormError('');
 
-    if (!formData.email || !formData.password) {
+    // Validations
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       setFormError('Por favor, preencha todos os campos');
+      return;
+    }
+
+    if (formData.username.length < 3) {
+      setFormError('Username deve ter pelo menos 3 caracteres');
       return;
     }
 
@@ -38,7 +46,12 @@ export default function LoginPage() {
       return;
     }
 
-    const success = await login(formData.email, formData.password);
+    if (formData.password !== formData.confirmPassword) {
+      setFormError('As senhas não coincidem');
+      return;
+    }
+
+    const success = await signup(formData.email, formData.password, formData.username);
     if (success) {
       navigate('/');
     }
@@ -62,12 +75,12 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white mb-2">Betwin</h1>
-          <p className="text-blue-200">Plataforma Quantitativa para Betfair Exchange</p>
+          <p className="text-blue-200">Crie sua conta agora</p>
         </div>
 
-        {/* Login Card */}
+        {/* Signup Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 backdrop-blur-xl bg-opacity-95 dark:bg-opacity-95">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Login</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Criar Conta</h2>
 
           {/* Error Message */}
           {(formError || error) && (
@@ -79,6 +92,23 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Username Field */}
+            <div>
+              <label htmlFor="username" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Nome de Usuário
+              </label>
+              <input
+                id="username"
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="seu_usuario"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                disabled={isLoading}
+              />
+            </div>
+
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -112,6 +142,25 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   disabled={isLoading}
                 />
+              </div>
+            </div>
+
+            {/* Confirm Password Field */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Confirmar Senha
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  disabled={isLoading}
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -123,15 +172,18 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me */}
+            {/* Terms Agreement */}
             <div className="flex items-center">
               <input
-                id="remember"
+                id="terms"
                 type="checkbox"
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
               />
-              <label htmlFor="remember" className="ml-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-                Lembrar-me neste dispositivo
+              <label htmlFor="terms" className="ml-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                Concordo com os{' '}
+                <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
+                  Termos de Serviço
+                </a>
               </label>
             </div>
 
@@ -144,10 +196,10 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <span className="inline-block animate-spin mr-2">⏳</span>
-                  Autenticando...
+                  Criando conta...
                 </>
               ) : (
-                'Entrar'
+                'Criar Conta'
               )}
             </button>
           </form>
@@ -159,23 +211,22 @@ export default function LoginPage() {
             <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
           </div>
 
-          {/* Sign Up Link */}
+          {/* Login Link */}
           <p className="text-center text-gray-600 dark:text-gray-400">
-            Não tem conta?{' '}
+            Já tem conta?{' '}
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/login')}
               className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
             >
-              Criar conta
+              Fazer login
             </button>
           </p>
         </div>
 
-        {/* Demo Info */}
+        {/* Info Box */}
         <div className="mt-8 bg-blue-900 bg-opacity-50 backdrop-blur-md border border-blue-400 border-opacity-30 rounded-lg p-4 text-center text-blue-100 text-sm">
-          <p className="mb-2">📌 <strong>Credenciais de Demo:</strong></p>
-          <p>Email: <code className="bg-black bg-opacity-30 px-2 py-1 rounded">demo@betwin.com</code></p>
-          <p>Senha: <code className="bg-black bg-opacity-30 px-2 py-1 rounded">demo123456</code></p>
+          <p>🔒 Sua conta é segura com autenticação Supabase</p>
+          <p className="mt-2 text-xs text-blue-200">Nunca compartilhe sua senha</p>
         </div>
       </div>
 
