@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+
+export default function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const navItems = [
+    { path: '/', label: '📊 Dashboard', icon: '📊' },
+    { path: '/markets', label: '📈 Mercados', icon: '📈' },
+    { path: '/trading', label: '💹 Trading', icon: '💹' },
+    { path: '/analytics', label: '📉 Analytics', icon: '📉' },
+    { path: '/signals', label: '🎯 Sinais', icon: '🎯' },
+    { path: '/backtest', label: '⏱️ Backtest', icon: '⏱️' },
+    { path: '/settings', label: '⚙️ Configurações', icon: '⚙️' },
+  ];
+
+  return (
+    <div className={darkMode ? 'dark' : ''}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Top Navigation Bar */}
+        <nav className="bg-white dark:bg-gray-800 shadow">
+          <div className="px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+              >
+                ☰
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                🚀 Betwin
+              </h1>
+              <span className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full font-semibold">
+                PAPER TRADING
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                title={darkMode ? 'Light Mode' : 'Dark Mode'}
+              >
+                {darkMode ? '☀️' : '🌙'}
+              </button>
+              <div className="flex items-center gap-2 pl-4 border-l border-gray-200 dark:border-gray-700">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  U
+                </div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">User</span>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        <div className="flex">
+          {/* Sidebar */}
+          <aside
+            className={`${
+              sidebarOpen ? 'w-64' : 'w-20'
+            } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 fixed h-screen overflow-y-auto`}
+          >
+            <div className="p-4 space-y-2">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive(item.path)
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  title={item.label}
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  {sidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
+                </Link>
+              ))}
+            </div>
+
+            {/* Sidebar Footer */}
+            <div className="absolute bottom-4 left-0 right-0 px-4">
+              <div className={`p-3 bg-blue-50 dark:bg-blue-900 rounded-lg ${!sidebarOpen && 'px-2'}`}>
+                {sidebarOpen && (
+                  <>
+                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                      Saldo Virtual
+                    </p>
+                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      €10,000
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <main className={`${sidebarOpen ? 'ml-64' : 'ml-20'} flex-1 transition-all duration-300`}>
+            <div className="p-8">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
+

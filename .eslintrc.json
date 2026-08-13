@@ -1,0 +1,4 @@
+{
+  "import/extensions": ["error", "ignorePackages", { "ts": "never" }],
+  "import/no-unresolved": "error"
+}
