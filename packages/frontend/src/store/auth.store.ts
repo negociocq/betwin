@@ -48,14 +48,18 @@ export const useAuthStore = create<AuthState>((set) => ({
         return false;
       }
 
-      // Fetch user profile from database
-      const { data: profile, error: profileError } = await supabase
+      // Fetch user profile from database by email instead of id
+      const { data: profiles, error: profileError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', data.user.id)
-        .single();
+        .eq('email', email);
 
-      if (profileError) {
+      let profile = null;
+      if (!profileError && profiles && profiles.length > 0) {
+        profile = profiles[0];
+      }
+
+      if (!profile) {
         // Se não existe perfil, criar um
         console.log('Perfil não existe, criando novo...');
 
@@ -74,30 +78,28 @@ export const useAuthStore = create<AuthState>((set) => ({
           .single();
 
         if (createError) {
-          console.error('Erro ao criar perfil:', createError);
-          set({ error: 'Erro ao criar perfil', isLoading: false });
-          return false;
+          // Se o erro é por constraint (email já existe), buscar o perfil existente
+          if (createError.code === '23505') {
+            console.log('Email já existe, buscando perfil existente...');
+            const { data: existingProfiles } = await supabase
+              .from('users')
+              .select('*')
+              .eq('email', email);
+
+            if (existingProfiles && existingProfiles.length > 0) {
+              profile = existingProfiles[0];
+            } else {
+              set({ error: 'Perfil não encontrado', isLoading: false });
+              return false;
+            }
+          } else {
+            console.error('Erro ao criar perfil:', createError);
+            set({ error: 'Erro ao criar perfil', isLoading: false });
+            return false;
+          }
+        } else {
+          profile = newProfile;
         }
-
-        const user: User = {
-          id: newProfile.id,
-          email: newProfile.email,
-          username: newProfile.username,
-          trading_mode: newProfile.trading_mode,
-          account_balance: newProfile.account_balance,
-        };
-
-        localStorage.setItem('auth_token', data.session?.access_token || '');
-        localStorage.setItem('auth_user', JSON.stringify(user));
-
-        set({
-          isAuthenticated: true,
-          user,
-          token: data.session?.access_token || '',
-          isLoading: false,
-        });
-
-        return true;
       }
 
       const user: User = {
@@ -145,55 +147,56 @@ export const useAuthStore = create<AuthState>((set) => ({
         return false;
       }
 
-      // Check if profile already exists
-      const { data: existingProfile } = await supabase
+      // Check if profile already exists by email
+      const { data: existingProfiles } = await supabase
         .from('users')
         .select('*')
-        .eq('id', data.user.id)
-        .single();
+        .eq('email', email);
+
+      let profile = null;
 
       // If profile exists, use it
-      if (existingProfile) {
-        const user: User = {
-          id: existingProfile.id,
-          email: existingProfile.email,
-          username: existingProfile.username,
-          trading_mode: existingProfile.trading_mode,
-          account_balance: existingProfile.account_balance,
-        };
+      if (existingProfiles && existingProfiles.length > 0) {
+        profile = existingProfiles[0];
+      } else {
+        // Create user profile in database
+        const { data: newProfile, error: profileError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: data.user.id,
+              email: data.user.email,
+              username,
+              trading_mode: 'PAPER',
+              account_balance: 10000,
+            },
+          ])
+          .select()
+          .single();
 
-        localStorage.setItem('auth_token', data.session?.access_token || '');
-        localStorage.setItem('auth_user', JSON.stringify(user));
+        if (profileError) {
+          // If error is constraint, fetch the existing profile
+          if (profileError.code === '23505') {
+            const { data: foundProfiles } = await supabase
+              .from('users')
+              .select('*')
+              .eq('email', email);
 
-        set({
-          isAuthenticated: true,
-          user,
-          token: data.session?.access_token || '',
-          isLoading: false,
-        });
-
-        return true;
-      }
-
-      // Create user profile in database
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .insert([
-          {
-            id: data.user.id,
-            email: data.user.email,
-            username,
-            trading_mode: 'PAPER',
-            account_balance: 10000,
-          },
-        ])
-        .select()
-        .single();
-
-      if (profileError) {
-        console.error('Erro ao criar perfil:', profileError);
-        set({ error: 'Erro ao criar perfil', isLoading: false });
-        return false;
+            if (foundProfiles && foundProfiles.length > 0) {
+              profile = foundProfiles[0];
+            } else {
+              console.error('Erro ao criar perfil:', profileError);
+              set({ error: 'Erro ao criar perfil', isLoading: false });
+              return false;
+            }
+          } else {
+            console.error('Erro ao criar perfil:', profileError);
+            set({ error: 'Erro ao criar perfil', isLoading: false });
+            return false;
+          }
+        } else {
+          profile = newProfile;
+        }
       }
 
       const user: User = {
