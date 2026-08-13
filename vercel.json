@@ -1,18 +1,17 @@
 {
-  "buildCommand": "npm install && npm run build:frontend",
+  "buildCommand": "cd packages/frontend && npm install && npm run build",
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "npm install --legacy-peer-deps",
-  "env": {
-    "VITE_API_URL": "https://betwin-api.vercel.app",
-    "VITE_WS_URL": "wss://betwin-api.vercel.app",
-    "VITE_APP_ENV": "production",
-    "VITE_SUPABASE_URL": "@VITE_SUPABASE_URL",
-    "VITE_SUPABASE_ANON_KEY": "@VITE_SUPABASE_ANON_KEY"
-  },
-  "regions": ["iad1"],
-  "functions": {
-    "packages/backend/src/**/*.ts": {
-      "runtime": "nodejs-20.x"
+  "devCommand": "cd packages/frontend && npm run dev",
+  "framework": "vite",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
     }
-  }
+  ]
 }
