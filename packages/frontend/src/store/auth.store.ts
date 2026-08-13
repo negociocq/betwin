@@ -57,12 +57,15 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (profileError) {
         // Se não existe perfil, criar um
+        console.log('Perfil não existe, criando novo...');
+
         const { data: newProfile, error: createError } = await supabase
           .from('users')
           .insert([
             {
               id: data.user.id,
               email: data.user.email,
+              username: data.user.email?.split('@')[0] || 'user',
               trading_mode: 'PAPER',
               account_balance: 10000,
             },
@@ -71,6 +74,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           .single();
 
         if (createError) {
+          console.error('Erro ao criar perfil:', createError);
           set({ error: 'Erro ao criar perfil', isLoading: false });
           return false;
         }
@@ -78,6 +82,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         const user: User = {
           id: newProfile.id,
           email: newProfile.email,
+          username: newProfile.username,
           trading_mode: newProfile.trading_mode,
           account_balance: newProfile.account_balance,
         };
@@ -115,6 +120,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       return true;
     } catch (err: any) {
+      console.error('Erro no login:', err);
       set({ error: err.message || 'Erro desconhecido', isLoading: false });
       return false;
     }
@@ -139,6 +145,36 @@ export const useAuthStore = create<AuthState>((set) => ({
         return false;
       }
 
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      // If profile exists, use it
+      if (existingProfile) {
+        const user: User = {
+          id: existingProfile.id,
+          email: existingProfile.email,
+          username: existingProfile.username,
+          trading_mode: existingProfile.trading_mode,
+          account_balance: existingProfile.account_balance,
+        };
+
+        localStorage.setItem('auth_token', data.session?.access_token || '');
+        localStorage.setItem('auth_user', JSON.stringify(user));
+
+        set({
+          isAuthenticated: true,
+          user,
+          token: data.session?.access_token || '',
+          isLoading: false,
+        });
+
+        return true;
+      }
+
       // Create user profile in database
       const { data: profile, error: profileError } = await supabase
         .from('users')
@@ -155,6 +191,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         .single();
 
       if (profileError) {
+        console.error('Erro ao criar perfil:', profileError);
         set({ error: 'Erro ao criar perfil', isLoading: false });
         return false;
       }
@@ -179,6 +216,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       return true;
     } catch (err: any) {
+      console.error('Erro no signup:', err);
       set({ error: err.message || 'Erro desconhecido', isLoading: false });
       return false;
     }
