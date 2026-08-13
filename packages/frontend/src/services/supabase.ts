@@ -1,164 +1,152 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase Configuration
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dqalbolenmsiwapljqjl.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error(
-    'Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY'
-  );
+  console.warn('⚠️ Supabase credentials not configured. Check your .env.local file');
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Helper functions for common operations
+export const supabaseHelpers = {
+  // Users
+  async getUserProfile(userId: string) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    return { data, error };
+  },
 
-export async function getUser() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) {
-    console.error('Error getting user:', error);
-    return null;
-  }
-  return data.user;
-}
+  async updateUserProfile(userId: string, updates: any) {
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+    return { data, error };
+  },
 
-export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    console.error('Error signing out:', error);
-    return false;
-  }
-  return true;
-}
+  // Markets
+  async getMarkets() {
+    const { data, error } = await supabase
+      .from('markets')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    return { data, error };
+  },
 
-// Trades operations
-export async function getTrades(userId: string) {
-  const { data, error } = await supabase
-    .from('trades')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  async getMarketById(marketId: string) {
+    const { data, error } = await supabase
+      .from('markets')
+      .select('*')
+      .eq('id', marketId)
+      .single();
+    return { data, error };
+  },
 
-  if (error) {
-    console.error('Error fetching trades:', error);
-    return [];
-  }
-  return data || [];
-}
+  // Trades
+  async getTrades(userId: string) {
+    const { data, error } = await supabase
+      .from('trades')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    return { data, error };
+  },
 
-export async function createTrade(trade: any) {
-  const { data, error } = await supabase
-    .from('trades')
-    .insert([trade])
-    .select()
-    .single();
+  async createTrade(trade: any) {
+    const { data, error } = await supabase
+      .from('trades')
+      .insert([trade])
+      .select()
+      .single();
+    return { data, error };
+  },
 
-  if (error) {
-    console.error('Error creating trade:', error);
-    return null;
-  }
-  return data;
-}
+  // Signals
+  async getSignals(userId: string) {
+    const { data, error } = await supabase
+      .from('signals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'GENERATED')
+      .order('generated_at', { ascending: false });
+    return { data, error };
+  },
 
-// Markets operations
-export async function getMarkets() {
-  const { data, error } = await supabase
-    .from('markets')
-    .select('*')
-    .order('updated_at', { ascending: false });
+  async createSignal(signal: any) {
+    const { data, error } = await supabase
+      .from('signals')
+      .insert([signal])
+      .select()
+      .single();
+    return { data, error };
+  },
 
-  if (error) {
-    console.error('Error fetching markets:', error);
-    return [];
-  }
-  return data || [];
-}
+  // Analytics Cache
+  async getAnalyticsCache(marketId: string, selectionId: number) {
+    const { data, error } = await supabase
+      .from('analytics_cache')
+      .select('*')
+      .eq('market_id', marketId)
+      .eq('selection_id', selectionId);
+    return { data, error };
+  },
 
-export async function getMarket(marketId: string) {
-  const { data, error } = await supabase
-    .from('markets')
-    .select('*')
-    .eq('id', marketId)
-    .single();
+  async upsertAnalyticsCache(analytics: any) {
+    const { data, error } = await supabase
+      .from('analytics_cache')
+      .upsert([analytics])
+      .select()
+      .single();
+    return { data, error };
+  },
 
-  if (error) {
-    console.error('Error fetching market:', error);
-    return null;
-  }
-  return data;
-}
+  // Risk Monitor
+  async getRiskMonitor(userId: string) {
+    const { data, error } = await supabase
+      .from('risk_monitor')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    return { data, error };
+  },
 
-// Signals operations
-export async function getSignals(userId: string) {
-  const { data, error } = await supabase
-    .from('signals')
-    .select('*')
-    .eq('user_id', userId)
-    .order('generated_at', { ascending: false });
+  async updateRiskMonitor(userId: string, updates: any) {
+    const { data, error } = await supabase
+      .from('risk_monitor')
+      .update(updates)
+      .eq('user_id', userId)
+      .select()
+      .single();
+    return { data, error };
+  },
 
-  if (error) {
-    console.error('Error fetching signals:', error);
-    return [];
-  }
-  return data || [];
-}
+  // Real-time subscriptions
+  subscribeToMarkets(callback: any) {
+    return supabase
+      .channel('markets')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'markets' },
+        callback
+      )
+      .subscribe();
+  },
 
-export async function createSignal(signal: any) {
-  const { data, error } = await supabase
-    .from('signals')
-    .insert([signal])
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating signal:', error);
-    return null;
-  }
-  return data;
-}
-
-// Risk Monitor operations
-export async function getRiskMonitor(userId: string) {
-  const { data, error } = await supabase
-    .from('risk_monitor')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-
-  if (error) {
-    console.error('Error fetching risk monitor:', error);
-    return null;
-  }
-  return data;
-}
-
-export async function updateRiskMonitor(userId: string, updates: any) {
-  const { data, error } = await supabase
-    .from('risk_monitor')
-    .update(updates)
-    .eq('user_id', userId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating risk monitor:', error);
-    return null;
-  }
-  return data;
-}
-
-// Real-time subscriptions
-export function subscribeToTrades(userId: string, callback: (payload: any) => void) {
-  return supabase
-    .from(`trades:user_id=eq.${userId}`)
-    .on('*', (payload) => callback(payload))
-    .subscribe();
-}
-
-export function subscribeToSignals(userId: string, callback: (payload: any) => void) {
-  return supabase
-    .from(`signals:user_id=eq.${userId}`)
-    .on('*', (payload) => callback(payload))
-    .subscribe();
-}
+  subscribeToTrades(userId: string, callback: any) {
+    return supabase
+      .channel(`trades:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'trades', filter: `user_id=eq.${userId}` },
+        callback
+      )
+      .subscribe();
+  },
+};
