@@ -42,3 +42,16 @@ Thumbs.db
 # Betfair credentials
 .betfair/
 *.pem
+
+# Vynex local data (no persistence on Vercel)
+data/
+storage/
+output/
+.tools/
+.cache/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.dpapi
+*.pyc
+__pycache__/

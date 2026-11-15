@@ -1,0 +1,15 @@
+{
+  "name": "vynex",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env scripts/start.mjs",
+    "dev": "node --env-file-if-exists=.env scripts/start.mjs",
+    "test": "node --test --test-isolation=none tests/*.test.mjs",
+    "check": "node --check services/api/server.mjs && node --check scripts/start.mjs && node --check apps/web/home.js && node --check apps/web/studio.js && node --check services/shopee-official/production.mjs && node --check services/api/auth.mjs && node --check services/api/web.mjs && node --check apps/web/public.js"
+  }
+}

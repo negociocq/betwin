@@ -1,9 +1,9 @@
 {
-  "buildCommand": "cd packages/frontend && npm install && npm run build",
-  "outputDirectory": "packages/frontend/dist",
+  "buildCommand": "",
+  "outputDirectory": "vynex/apps/web",
   "installCommand": "npm install --legacy-peer-deps",
-  "devCommand": "cd packages/frontend && npm run dev",
-  "framework": "vite",
+  "devCommand": "",
+  "framework": null,
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
@@ -20,8 +20,6 @@
   ],
   "env": {
     "VITE_API_URL": "@VITE_API_URL",
-    "VITE_WS_URL": "@VITE_WS_URL",
-    "VITE_SUPABASE_URL": "@VITE_SUPABASE_URL",
-    "VITE_SUPABASE_ANON_KEY": "@VITE_SUPABASE_ANON_KEY"
+    "VITE_WS_URL": "@VITE_WS_URL"
   }
 }

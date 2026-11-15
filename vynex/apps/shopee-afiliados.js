@@ -1,0 +1,1 @@
+const sections={products:'products',content:'videos',queue:'queue',reports:'queue',connections:'connections',overview:'overview'};const page=new URLSearchParams(location.search).has('connected')?'connections':sections[location.hash.slice(1)]||'overview';location.replace('/app/#shopee/'+page);
