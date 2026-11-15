@@ -55,3 +55,8 @@ output/
 *.dpapi
 *.pyc
 __pycache__/
+.env*
+
+.credentials.env
+.vercel/
+!package-lock.json
