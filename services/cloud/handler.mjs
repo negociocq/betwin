@@ -1,9 +1,12 @@
 import {createHash,timingSafeEqual,randomUUID} from 'node:crypto';
 import {createWorkspaceStore} from './workspace.mjs';
 import {createRuntime} from './runtime.mjs';
+import {createTenantHandler} from './tenant-handler.mjs';
 const digest=v=>createHash('sha256').update(v).digest('hex');
 const allowed=new Set(['shopee/buffer/connect','shopee/buffer/sync','shopee/buffer/bind','shopee/credentials','gta6/pause','gta6/configure','gta6/buffer/connect','gta6/buffer/sync','gta6/buffer/bind',...['studio-configure','campaign','production-run','configure','verify-shopee','discover','draft','approve','plan','test-pinterest','pinterest-client','verify-pinterest','reports','cancel'].map(p=>'shopee-official/'+p)]);
-export function createCloudHandler({store=createWorkspaceStore({token:process.env.BLOB_READ_WRITE_TOKEN,key:process.env.VYNEX_CLOUD_SECRET}),sdkImpl}={}){
+export function createCloudHandler({store,sdkImpl}={}){
+ if(!store&&process.env.SUPABASE_URL)return createTenantHandler({sdkImpl,allowed});
+ store??=createWorkspaceStore({token:process.env.BLOB_READ_WRITE_TOKEN,key:process.env.VYNEX_CLOUD_SECRET});
  return async(req,res)=>{
   const send=(status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body));};
   try{

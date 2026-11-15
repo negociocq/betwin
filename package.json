@@ -11,7 +11,8 @@
     "test": "node --test --test-isolation=none tests/cloud.test.mjs"
   },
   "dependencies": {
-    "@vercel/blob": "2.9.0"
+    "@vercel/blob": "2.9.0",
+    "@supabase/supabase-js": "2.119.0"
   },
   "overrides": {
     "zod": "^4.6.6"

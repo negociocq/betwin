@@ -1,0 +1,42 @@
+import {createHash,randomUUID,timingSafeEqual} from 'node:crypto';
+import {supabaseClients,createAccountWorkspace} from './supabase.mjs';
+import {createAccountAuth} from './account-auth.mjs';
+import {emptyWorkspace,accountSettings} from './empty-workspace.mjs';
+export function createTenantHandler({clients=supabaseClients(),auth,workspace,sdkImpl,ownerId=process.env.VYNEX_OWNER_ID,agentHash=process.env.VYNEX_AGENT_HASH,allowed}={}){
+ auth??=createAccountAuth(clients);workspace??=id=>createAccountWorkspace({admin:clients.admin,ownerId:id,initial:emptyWorkspace});
+ return async(req,res)=>{
+  const send=(status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body));};
+  try{
+   const path=new URL(req.url,'https://betwin-three.vercel.app').pathname;
+   if(path==='/api/liveness')return send(200,{ok:true,persistence:'supabase'});
+   const origins=new Set([process.env.VYNEX_PUBLIC_URL||'https://betwin-three.vercel.app',...(process.env.VERCEL_URL?['https://'+process.env.VERCEL_URL]:[])]);if(req.headers.origin&&!origins.has(req.headers.origin))return send(403,{error:'Origem não autorizada.'});
+   let body=req.body;if(req.method==='POST'&&body===undefined){let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>1048576)return send(413,{error:'Dados excedem o limite.'});}body=raw?JSON.parse(raw):{};}if(typeof body==='string')body=JSON.parse(body);body??={};
+   if(await auth.handle(req,res,path,body))return;
+   if(path==='/api/cloud/agent'){
+    const candidate=createHash('sha256').update(String(req.headers.authorization||'').replace(/^Bearer /,'')).digest('hex');if(!ownerId||agentHash?.length!==64||!timingSafeEqual(Buffer.from(candidate),Buffer.from(agentHash)))return send(401,{error:'Agente não autorizado.'});
+    const store=workspace(ownerId);if(req.method==='GET'){const {data}=await store.read();return send(200,{commands:(data.commands||[]).filter(c=>c.status==='queued').map(({id,path,body})=>({id,path,body}))});}
+    if(req.method!=='POST')return send(405,{error:'Método não permitido.'});
+    return send(200,await store.transaction(async data=>{
+     if(body.claim){const c=data.commands?.find(c=>c.id===body.claim);if(!c||c.status!=='queued')return {claimed:false};c.status='running';c.startedAt=new Date().toISOString();return {claimed:true,command:{id:c.id,path:c.path,body:c.body}};}
+     if(body.complete){const c=data.commands?.find(c=>c.id===body.complete);if(c?.status==='running'){c.status=body.ok?'completed':'failed';c.message=String(body.message||'').slice(0,1000);c.finishedAt=new Date().toISOString();delete c.body;}}
+     if(body.snapshot){data.snapshots=body.snapshot;data.syncedAt=new Date().toISOString();}if(body.media)data.media={...data.media,...body.media};
+     data.commands=(data.commands||[]).filter(c=>!c.finishedAt||Date.now()-Date.parse(c.finishedAt)<7*86400000);return {ok:true};
+    }));
+   }
+   const user=await auth.user(req),capability=['GET','HEAD'].includes(req.method)&&/^\/api\/explainers\/media\/[a-f0-9]{48}\.mp4$/.test(path);
+   if(!user&&!capability)return send(401,{error:'Entre na sua conta para acessar o Vynex.',code:'AUTH_REQUIRED'});
+   const store=workspace(user?.id||ownerId),{data}=await store.read();if(!user&&data.media?.[path]?.public!==true)return send(401,{error:'Entre na sua conta para acessar o Vynex.',code:'AUTH_REQUIRED'});
+   if(req.method==='POST'){
+    if(!allowed?.has(path.slice(5)))return send(404,{error:'Operação não disponível.'});
+    if(user.id!==ownerId){let updated=false;await store.transaction(async state=>{updated=accountSettings(state,path,body);});if(updated)return send(200,{saved:true});return send(409,{error:'Esta conta ainda não possui agente de produção conectado. Suas configurações ficam salvas separadamente.'});}
+    const id=randomUUID();await store.transaction(async state=>{state.commands??=[];if(state.commands.filter(c=>['queued','running'].includes(c.status)).length>=30)throw Object.assign(Error('Aguarde a fila atual.'),{status:409});state.commands.push({id,path,body,status:'queued',createdAt:new Date().toISOString()});});return send(202,{queued:true,commandId:id,message:'Solicitação salva na sua conta. O computador executará na próxima sincronização (até 10 minutos).'});
+   }
+   if(!['GET','HEAD'].includes(req.method))return send(405,{error:'Método não permitido.'});
+   if(path==='/api/cloud/status')return send(200,{mode:user.id===ownerId?'local-agent':'awaiting-agent',syncedAt:data.syncedAt,intervalMinutes:10,commands:(data.commands||[]).map(({body,...c})=>c)});
+   if(data.snapshots?.[path]!==undefined)return send(200,data.snapshots[path]);
+   const media=data.media?.[path];if(media){const lib=sdkImpl||await import('@vercel/blob'),validUntil=Date.now()+15*60000,signed=await lib.issueSignedToken({pathname:media.pathname,operations:['get','head'],validUntil,token:process.env.BLOB_READ_WRITE_TOKEN}),{presignedUrl}=await lib.presignUrl(signed,{pathname:media.pathname,access:'private',operation:req.method==='HEAD'?'head':'get',validUntil});res.writeHead(307,{Location:presignedUrl,'Cache-Control':'no-store'});return res.end();}
+   if(path.includes('/oauth/pinterest/'))return send(409,{error:'Conclua a autorização no agente de produção desta conta.'});
+   return send(404,{error:'Arquivo ou operação não encontrado.'});
+  }catch(e){console.error('Vynex account API:',e.status||'internal');return send(e.status||503,{error:e.status?e.message:'Não foi possível concluir a operação. Tente novamente.'});}
+ };
+}
