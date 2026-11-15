@@ -30,11 +30,11 @@
     },
     {
       "source": "/app",
-      "destination": "/index.html"
+      "destination": "/studio.html"
     },
     {
       "source": "/app/",
-      "destination": "/index.html"
+      "destination": "/studio.html"
     }
   ],
   "headers": [
