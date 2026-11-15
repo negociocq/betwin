@@ -1,6 +1,6 @@
 {
-  "buildCommand": "",
-  "outputDirectory": "vynex/apps/web",
+  "buildCommand": "echo 'static site, no build needed'",
+  "outputDirectory": "vynex/apps",
   "installCommand": "npm install --legacy-peer-deps",
   "devCommand": "",
   "framework": null,
