@@ -34,6 +34,6 @@ Não publicar `.env*`, `.credentials.env`, cofres DPAPI, SQLite, mídia ou cache
 
 `npm test` verifica persistência de sessões entre runtimes, criptografia, conflitos de gravação, proteção da API, fila e logout. `npm run build` verifica o ponto de entrada da Function.
 
-A migração `supabase/migrations/20261115_vynex_accounts.sql` cria o esquema isolado. A integração foi validada com duas contas temporárias: migração de senha, login, isolamento de dados, bloqueio de escalada de permissões, RLS, revogação de sessões e logout. As contas de teste foram removidas.
+A migração `supabase/migrations/20261115000100_vynex_accounts.sql` cria o esquema isolado. A integração foi validada com duas contas temporárias: migração de senha, login, isolamento de dados, bloqueio de escalada de permissões, RLS, revogação de sessões e logout. As contas de teste foram removidas.
 
 Os diretórios legados de Betfair permanecem preservados no repositório e excluídos da implantação. Os endpoints antigos de negociação foram removidos da versão publicada.

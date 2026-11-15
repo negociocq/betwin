@@ -50,15 +50,16 @@ export function createAccountAuth({admin,publicClient,key=process.env.VYNEX_CLOU
    if(['/api/auth/profile','/api/auth/password'].includes(path)){
     const current=await user(req);if(!current)fail(401,'Entre na sua conta para continuar.');
     const p=check(await admin.from('vynex_profiles').select('*').eq('id',current.id).single());
+    const confirm=async()=>{await throttle(req);if(typeof input.currentPassword!=='string'||input.currentPassword.length>128)fail(403,'Confirme sua senha atual.');try{return await authenticate(p.email,input.currentPassword);}catch(e){if(e.status===401)fail(403,'A senha atual está incorreta.');throw e;}};
     if(path==='/api/auth/password'){
-     if(typeof input.newPassword!=='string'||input.newPassword.length<8||input.newPassword.length>128)fail(400,'A nova senha deve ter de 8 a 128 caracteres.');await throttle(req);if(typeof input.currentPassword!=='string')fail(403,'Confirme sua senha atual.');await authenticate(p.email,input.currentPassword);
+     if(typeof input.newPassword!=='string'||input.newPassword.length<8||input.newPassword.length>128)fail(400,'A nova senha deve ter de 8 a 128 caracteres.');await confirm();
      check(await admin.auth.admin.updateUserById(p.auth_user_id,{password:input.newPassword}));check(await admin.from('vynex_sessions').delete().eq('profile_id',p.id));await issue(res,p.id);return send(200,{user:publicUser(p),passwordChanged:true});
     }
     const name=String(input.name??p.name).trim(),username=String(input.username??p.username??'').trim().toLowerCase(),email=String(input.email??p.email).trim().toLowerCase();
     if(name.length<2||name.length>80||username&&!/^[a-z0-9_.-]{3,32}$/.test(username))fail(400,'Informe nome e usuário válidos.');
     if(email!==p.email)fail(400,'A alteração de e-mail ficará disponível após configurar o serviço de confirmação.');
-    if(username!==(p.username||'')){await throttle(req);if(typeof input.currentPassword!=='string')fail(403,'Confirme sua senha atual.');await authenticate(p.email,input.currentPassword);}
-    const updated=await admin.from('vynex_profiles').update({name,username:username||null}).eq('id',p.id).select('*').single();if(updated.error?.code==='23505')fail(409,'Este usuário já está em uso.');check(updated);return send(200,{user:publicUser(updated.data)});
+    const sensitive=username!==(p.username||'');if(sensitive)await confirm();
+    const updated=await admin.from('vynex_profiles').update({name,username:username||null}).eq('id',p.id).select('*').single();if(updated.error?.code==='23505')fail(409,'Este usuário já está em uso.');check(updated);if(sensitive){check(await admin.from('vynex_sessions').delete().eq('profile_id',p.id));await issue(res,p.id);}return send(200,{user:publicUser(updated.data)});
    }
    return send(404,{error:'Operação não disponível.'});
   }catch(e){console.error('Vynex auth:',e.status||'internal');return send(e.status||503,{error:e.status?e.message:'Não foi possível concluir o acesso. Tente novamente.'});}
