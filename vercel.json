@@ -1,25 +1,8 @@
 {
-  "buildCommand": "echo 'static site, no build needed'",
-  "outputDirectory": "vynex/apps",
-  "installCommand": "npm install --legacy-peer-deps",
-  "devCommand": "",
-  "framework": null,
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
-    { "source": "/api/:match*", "destination": "/api/:match*" }
+  "builds": [
+    { "src": "vynex/apps/**", "use": "@vercel/static" }
   ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
-    }
-  ],
-  "env": {
-    "VITE_API_URL": "@VITE_API_URL",
-    "VITE_WS_URL": "@VITE_WS_URL"
-  }
+  "routes": [
+    { "src": "/(.*)", "dest": "/vynex/apps/$1" }
+  ]
 }
