@@ -1,6 +1,6 @@
 ﻿import json,sys,subprocess,textwrap,os
 from pathlib import Path
-from PIL import Image,ImageDraw,ImageFont,ImageOps
+from PIL import Image,ImageDraw,ImageFont,ImageOps,ImageFilter
 ROOT=Path(__file__).resolve().parent.parent.parent
 request=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8-sig'));folder=Path(request['folder']).resolve()
 if not folder.is_relative_to(ROOT/'storage/shopee-official'): raise RuntimeError('Output outside Shopee module')
@@ -18,9 +18,22 @@ for n,item in enumerate(images):
 clean=[i for i in images if i.get('kind')=='ai-illustration']; base=(clean or images)[:4]
 scenes=[base[i % len(base)] for i in range(6)]
 def frame(item,index,height=1920):
- canvas=Image.new('RGB',(1080,height),'#101216')
- photo=ImageOps.contain(ImageOps.exif_transpose(Image.open(item['file'])).convert('RGB'),(1040,height-80),Image.Resampling.LANCZOS)
- canvas.paste(photo,((1080-photo.width)//2,(height-photo.height)//2)); return canvas
+ # Lifestyle composition: warm kitchen backdrop, countertop, soft shadow and a
+ # clean product card. No labels or sales copy are drawn over the image.
+ canvas=Image.new('RGB',(1080,height),'#eee7df'); px=canvas.load()
+ for y in range(height):
+  t=y/max(1,height-1); c=(238-int(35*t),231-int(28*t),222-int(18*t))
+  for x in range(1080): px[x,y]=c
+ d=ImageDraw.Draw(canvas)
+ d.rectangle((0,round(height*.68),1080,height),fill='#b88760')
+ d.rectangle((0,round(height*.68),1080,round(height*.685)),fill='#8d6044')
+ # soft geometric kitchen tiles and a plant-like accent for depth
+ for x in range(0,1080,270): d.line((x,0,x,round(height*.68)),fill='#e1d6ca',width=3)
+ d.ellipse((850,180,1030,360),fill='#9caf8a'); d.ellipse((900,120,1060,300),fill='#78956e')
+ photo=ImageOps.contain(ImageOps.exif_transpose(Image.open(item['file'])).convert('RGB'),(880,1100),Image.Resampling.LANCZOS)
+ x=(1080-photo.width)//2; y=round(height*.28)-photo.height//2
+ shadow=Image.new('RGBA',(photo.width+80,photo.height+80),(0,0,0,0)); sd=ImageDraw.Draw(shadow); sd.rounded_rectangle((40,40,photo.width+40,photo.height+40),radius=35,fill=(35,24,17,55)); shadow=shadow.filter(ImageFilter.GaussianBlur(24)); canvas.paste(shadow,(x-40,y-10),shadow)
+ canvas.paste(photo,(x,y)); return canvas
 frame(images[0],0,1620).save(folder/'pin.png',optimize=True)
 ffmpeg=ROOT/'.tools/ffmpeg/bin/ffmpeg.exe'; segments=[]
 for i,item in enumerate(scenes):
