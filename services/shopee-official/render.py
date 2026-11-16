@@ -15,25 +15,18 @@ for n,item in enumerate(images):
   if photo.width*photo.height>40000000: raise RuntimeError('Product image too large')
   photo.verify()
  ImageOps.exif_transpose(Image.open(file)).convert('RGB').save(folder/f'product-image-{n}.png')
-clean=[i for i in images if i.get('kind')=='ai-illustration']; base=(clean or images)[:4]
+# Use only photos supplied by the listing. AI illustrations are kept in the
+# gallery for reference but never used as the sales video source.
+base=[i for i in images if i.get('kind')=='source']
 scenes=[base[i % len(base)] for i in range(6)]
 def frame(item,index,height=1920):
- # Lifestyle composition: warm kitchen backdrop, countertop, soft shadow and a
- # clean product card. No labels or sales copy are drawn over the image.
- canvas=Image.new('RGB',(1080,height),'#eee7df'); px=canvas.load()
- for y in range(height):
-  t=y/max(1,height-1); c=(238-int(35*t),231-int(28*t),222-int(18*t))
-  for x in range(1080): px[x,y]=c
- d=ImageDraw.Draw(canvas)
- d.rectangle((0,round(height*.68),1080,height),fill='#b88760')
- d.rectangle((0,round(height*.68),1080,round(height*.685)),fill='#8d6044')
- # soft geometric kitchen tiles and a plant-like accent for depth
- for x in range(0,1080,270): d.line((x,0,x,round(height*.68)),fill='#e1d6ca',width=3)
- d.ellipse((850,180,1030,360),fill='#9caf8a'); d.ellipse((900,120,1060,300),fill='#78956e')
- photo=ImageOps.contain(ImageOps.exif_transpose(Image.open(item['file'])).convert('RGB'),(880,1100),Image.Resampling.LANCZOS)
- x=(1080-photo.width)//2; y=round(height*.28)-photo.height//2
- shadow=Image.new('RGBA',(photo.width+80,photo.height+80),(0,0,0,0)); sd=ImageDraw.Draw(shadow); sd.rounded_rectangle((40,40,photo.width+40,photo.height+40),radius=35,fill=(35,24,17,55)); shadow=shadow.filter(ImageFilter.GaussianBlur(24)); canvas.paste(shadow,(x-40,y-10),shadow)
- canvas.paste(photo,(x,y)); return canvas
+ photo=ImageOps.exif_transpose(Image.open(item['file'])).convert('RGB')
+ backdrop=ImageOps.fit(photo,(1080,height),Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(32))
+ canvas=Image.blend(backdrop,Image.new('RGB',(1080,height),'#16181d'),0.68)
+ product=ImageOps.contain(photo,(930,1450),Image.Resampling.LANCZOS)
+ x=(1080-product.width)//2; y=(height-product.height)//2
+ shadow=Image.new('RGBA',(product.width+80,product.height+80),(0,0,0,0)); sd=ImageDraw.Draw(shadow); sd.rounded_rectangle((40,40,product.width+40,product.height+40),radius=35,fill=(0,0,0,110)); shadow=shadow.filter(ImageFilter.GaussianBlur(28)); canvas.paste(shadow,(x-40,y+20),shadow)
+ canvas.paste(product,(x,y)); return canvas
 frame(images[0],0,1620).save(folder/'pin.png',optimize=True)
 ffmpeg=ROOT/'.tools/ffmpeg/bin/ffmpeg.exe'; segments=[]
 for i,item in enumerate(scenes):
@@ -46,7 +39,7 @@ if not pt: raise RuntimeError('Nenhuma voz pt-BR instalada para narracao')
 voice=os.environ.get('TTS_VOICE') or pt[0]; subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',str(speech),'-Operation','synthesize','-InputFile',str(inp),'-OutputDirectory',str(speech_dir),'-Voice',voice,'-Rate','0'],capture_output=True,text=True,encoding='utf-8',check=True)
 final=folder/'video-narrated.mp4'
 subprocess.run([str(ffmpeg),'-hide_banner','-loglevel','error','-y','-i',str(folder/'video.mp4'),'-i',str(speech_dir/'speech-000.wav'),'-map','0:v:0','-map','1:a:0','-t','24','-c:v','libx264','-preset','veryfast','-crf','19','-c:a','aac','-b:a','128k','-movflags','+faststart',str(final)],check=True); final.replace(folder/'video.mp4')
-report={'renderer':'product-scenes-v4','thirdPartyImagesUsed':True,'physicalDemonstration':False,'duration':12,'language':'pt-BR','sceneCount':len(scenes),'sourceImageCount':request.get('sourceImageCount',1),'illustrationCount':request.get('illustrationCount',0),'aiIllustrationsLabeled':True,'imageKinds':[i['kind'] for i in images],'narration':True,'subtitles':False,'narrationVoice':voice,'narrationText':narration_text}; (folder/'visuals.json').write_text(json.dumps(report,ensure_ascii=False),encoding='utf-8'); print(json.dumps(report,ensure_ascii=False))
+report={'renderer':'product-scenes-v5-real-photos','thirdPartyImagesUsed':True,'physicalDemonstration':False,'duration':24,'language':'pt-BR','sceneCount':len(scenes),'sourceImageCount':request.get('sourceImageCount',1),'illustrationCount':request.get('illustrationCount',0),'aiIllustrationsLabeled':True,'imageKinds':[i['kind'] for i in images],'narration':True,'subtitles':False,'narrationVoice':voice,'narrationText':narration_text}; (folder/'visuals.json').write_text(json.dumps(report,ensure_ascii=False),encoding='utf-8'); print(json.dumps(report,ensure_ascii=False))
 
 
 
