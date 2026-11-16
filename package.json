@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "node --check api/vynex.mjs",
-    "test": "node --test --test-isolation=none tests/cloud.test.mjs"
+    "test": "node --test --test-isolation=none tests/*.test.mjs"
   },
   "dependencies": {
     "@vercel/blob": "2.9.0",
