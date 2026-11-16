@@ -3,7 +3,7 @@ import {createWorkspaceStore} from './workspace.mjs';
 import {createRuntime} from './runtime.mjs';
 import {createTenantHandler} from './tenant-handler.mjs';
 const digest=v=>createHash('sha256').update(v).digest('hex');
-const allowed=new Set(['shopee/buffer/connect','shopee/buffer/sync','shopee/buffer/bind','shopee/credentials','gta6/pause','gta6/configure','gta6/buffer/connect','gta6/buffer/sync','gta6/buffer/bind',...['studio-configure','campaign','production-run','production-one','configure','verify-shopee','discover','draft','approve','plan','test-pinterest','pinterest-client','verify-pinterest','reports','cancel'].map(p=>'shopee-official/'+p)]);
+const allowed=new Set(['shopee/buffer/connect','shopee/buffer/sync','shopee/buffer/bind','shopee/credentials','gta6/pause','gta6/configure','gta6/buffer/connect','gta6/buffer/sync','gta6/buffer/bind',...['studio-configure','campaign','production-run','production-one','configure','verify-shopee','discover','draft','regenerate','approve','plan','test-pinterest','pinterest-client','verify-pinterest','reports','cancel'].map(p=>'shopee-official/'+p)]);
 export function createCloudHandler({store,sdkImpl}={}){
  if(!store&&process.env.SUPABASE_URL)return createTenantHandler({sdkImpl,allowed});
  store??=createWorkspaceStore({token:process.env.BLOB_READ_WRITE_TOKEN,key:process.env.VYNEX_CLOUD_SECRET});
